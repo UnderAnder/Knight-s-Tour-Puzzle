@@ -8,14 +8,14 @@ class Board:
     def draw_board(self, cell):
         board = self.table
         board[cell] = ' ' * len(self.placeholder[:-1]) + 'X'
-        print('  ---', '-' * (len(self.placeholder) + 1) * self.col, sep='')
+        print(' ---', '-' * (len(self.placeholder) + 1) * self.col, sep='')
         for y in range(self.row, 0, -1):
-            print(' ' * (2 - len(str(y))), y, '| ', sep='', end='')
+            print(' ' * (len(str(self.row)) - len(str(y))), y, '| ', sep='', end='')
             for x in range(1, self.col + 1):
                 print(board[x, y], '', end='')
             print('|')
-        print('  ---', '-' * (len(self.placeholder) + 1) * self.col, sep='')
-        print('   ', *[' ' * (len(self.placeholder)) + str(i) for i in range(1, self.col + 1)], sep='')
+        print(' ---', '-' * (len(self.placeholder) + 1) * self.col, sep='')
+        print('  ', *[' ' * (len(self.placeholder)) + str(i) for i in range(1, self.col + 1)], sep='')
 
 
 def dimensions_input():
@@ -30,11 +30,11 @@ def dimensions_input():
             print('Invalid dimensions!')
 
 
-def position_input():
+def position_input(dimensions):
     while True:
         try:
             col, row = map(int, input("Enter the knight's starting position: ").split())
-            if 0 < col < 9 and 0 < row < 9:
+            if 0 < col <= dimensions[0] and 0 < row <= dimensions[1]:
                 return col, row
             else:
                 raise ValueError
@@ -43,8 +43,9 @@ def position_input():
 
 
 def main():
-    board = Board(dimensions_input())
-    board.draw_board(position_input())
+    dimensions = dimensions_input()
+    board = Board(dimensions)
+    board.draw_board(position_input(dimensions))
 
 
 if __name__ == '__main__':
