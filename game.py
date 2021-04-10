@@ -2,6 +2,7 @@ class Board:
     def __init__(self, size: tuple):
         self.col = size[0]
         self.row = size[1]
+        self.possible_moves = ((2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2))
         self.placeholder = '_' * len(str(self.col * self.row))
         self.placeholder_len = len(self.placeholder)
         self.adjust = ' ' * (self.placeholder_len - 1)
@@ -26,41 +27,40 @@ class Board:
         deph -= 1
         count = 0
         col, row = cell[0], cell[1]
-        for i in (-2, -1, 1, 2):
-            for j in (-2, -1, 1, 2):
-                if abs(i) == abs(j):
+        for i, j in self.possible_moves:
+            if abs(i) == abs(j):
+                continue
+            if (col + j, row + i) in self.board.keys():
+                if self.board[(col + j, row + i)] != self.placeholder:
                     continue
-                if (col + j, row + i) in self.board.keys():
-                    if self.board[(col + j, row + i)] != self.placeholder:
-                        continue
-                    count += 1
-                    result = self.count_moves((col + j, row + i), deph)
-                    if result:
-                        self.board[(col + j, row + i)] = self.adjust + str(result)
+                count += 1
+                result = self.count_moves((col + j, row + i), deph)
+                if result:
+                    self.board[(col + j, row + i)] = self.adjust + str(result)
         return count
 
     def clean_board(self):
         for k, v in self.board.items():
             try:
                 int(v)
-            except:
+            except ValueError:
                 continue
             self.board[k] = self.placeholder
 
 
 class Game:
     def __init__(self):
-        self.count = 1
+        self.moves_count = 1
         self.dimensions = self.dimensions_input()
         self.board = Board(self.dimensions)
+        self.position = self.position_input()
         self.over = False
 
     def start(self):
-        self.position = self.position_input()
         self.board.place_knight(self.position)
         while not self.over:
             self.board.draw_board()
-            if len(self.possible_moves()) > 0:
+            if len(self.moves()) > 0:
                 self.board.place_knight(self.move())
             else:
                 self.game_over()
@@ -69,27 +69,25 @@ class Game:
         while True:
             try:
                 col, row = map(int, input("Enter your next move: ").split())
-                if (col, row) in self.possible_moves():
+                if (col, row) in self.moves():
                     self.board.board[self.position] = self.board.adjust + '*'
                     self.position = col, row
-                    self.count += 1
+                    self.moves_count += 1
                     return col, row
                 else:
                     raise ValueError
             except ValueError:
                 print('Invalid move!')
 
-    def possible_moves(self):
+    def moves(self):
         moves = []
         col, row = self.position[0], self.position[1]
-        for i in (-2, -1, 1, 2):
-            for j in (-2, -1, 1, 2):
-                if abs(i) == abs(j):
-                    continue
-                if (col + j, row + i) in self.board.board.keys():
-                    if self.board.board[(col + j, row + i)] != self.board.adjust + '*':
-                        moves.append((col + j, row + i))
-        print(moves)
+        for i, j in self.board.possible_moves:
+            if abs(i) == abs(j):
+                continue
+            if (col + j, row + i) in self.board.board.keys():
+                if self.board.board[(col + j, row + i)] != self.board.adjust + '*':
+                    moves.append((col + j, row + i))
         return moves
 
     @staticmethod
@@ -119,13 +117,11 @@ class Game:
         count = 0
         self.over = True
         for v in self.board.board.values():
-            if v == self.board.adjust + '*':
-                count += 1
+            count += 1 if v == self.board.adjust + '*' else 0
         if count == (self.board.col * self.board.row) - 1:
             print('What a great tour! Congratulations!')
         else:
-            print('No more possible moves!')
-            print(f'Your knight visited {self.count} squares!')
+            print('No more possible moves!', f'Your knight visited {self.moves_count} squares!', sep='\n')
 
 
 def main():
