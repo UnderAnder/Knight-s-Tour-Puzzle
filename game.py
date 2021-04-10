@@ -1,12 +1,17 @@
+from collections import defaultdict
+
+
 class Board:
+    move_offsets = ((2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2))
+
     def __init__(self, size: tuple):
         self.col = size[0]
         self.row = size[1]
-        self.possible_moves = ((2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2))
         self.placeholder = '_' * len(str(self.col * self.row))
         self.placeholder_len = len(self.placeholder)
         self.adjust = ' ' * (self.placeholder_len - 1)
         self.board = {(x, y): self.placeholder for y in range(self.row, 0, -1) for x in range(1, self.col + 1)}
+        self.solve_list = list()
 
     def draw_board(self):
         print(' ---', '-' * (self.placeholder_len + 1) * self.col, sep='')
@@ -19,25 +24,26 @@ class Board:
     def place_knight(self, cell: tuple):
         self.board[cell] = self.adjust + 'X'
         self.clean_board()
-        _ = self.count_moves(cell)
+        self.set_moves_count(cell)
 
-    def count_moves(self, cell: tuple, deph: int = 2) -> int:
-        if deph == 0:
-            return 0
-        deph -= 1
-        count = 0
-        col, row = cell[0], cell[1]
-        for i, j in self.possible_moves:
-            if abs(i) == abs(j):
-                continue
-            if (col + j, row + i) in self.board.keys():
-                if self.board[(col + j, row + i)] != self.placeholder:
-                    continue
-                count += 1
-                result = self.count_moves((col + j, row + i), deph)
-                if result:
-                    self.board[(col + j, row + i)] = self.adjust + str(result)
-        return count
+    def legal_moves_for(self, position):
+        moves = []
+        for i, j in self.move_offsets:
+            cell = position[0] + j, position[1] + i
+            if cell in self.board.keys():
+                if self.board.get(cell) != self.adjust + '*':
+                    moves.append(cell)
+        return moves
+
+    def legal_moves_count(self, position):
+        moves = defaultdict(int)
+        for i, j in self.legal_moves_for(position):
+            moves[i, j] = len(self.legal_moves_for((i, j)))
+        return moves
+
+    def set_moves_count(self, position: tuple):
+        for k, v in self.legal_moves_count(position).items():
+            self.board[k] = f'{self.adjust}{v}'
 
     def clean_board(self):
         for k, v in self.board.items():
@@ -58,18 +64,13 @@ class Game:
 
     def start(self):
         self.board.place_knight(self.position)
-        while not self.over:
-            self.board.draw_board()
-            if len(self.moves()) > 0:
-                self.board.place_knight(self.move())
-            else:
-                self.game_over()
+        self.game_mode()
 
     def move(self):
         while True:
             try:
                 col, row = map(int, input("Enter your next move: ").split())
-                if (col, row) in self.moves():
+                if (col, row) in self.board.legal_moves_for(self.position):
                     self.board.board[self.position] = self.board.adjust + '*'
                     self.position = col, row
                     self.moves_count += 1
@@ -77,18 +78,7 @@ class Game:
                 else:
                     raise ValueError
             except ValueError:
-                print('Invalid move!')
-
-    def moves(self):
-        moves = []
-        col, row = self.position[0], self.position[1]
-        for i, j in self.board.possible_moves:
-            if abs(i) == abs(j):
-                continue
-            if (col + j, row + i) in self.board.board.keys():
-                if self.board.board[(col + j, row + i)] != self.board.adjust + '*':
-                    moves.append((col + j, row + i))
-        return moves
+                print('Invalid move!', end='')
 
     @staticmethod
     def dimensions_input():
@@ -123,10 +113,27 @@ class Game:
         else:
             print('No more possible moves!', f'Your knight visited {self.moves_count} squares!', sep='\n')
 
+    def game_mode(self):
+        while True:
+            choice = input('Do you want to try the puzzle? (y/n): ')
+            if choice == 'y':
+                self.play_game()
+                return
+            elif choice == 'n':
+                self.solution()
+                return
 
-def main():
-    Game().start()
+    def play_game(self):
+        while not self.over:
+            self.board.draw_board()
+            if len(self.board.legal_moves_for(self.position)) > 0:
+                self.board.place_knight(self.move())
+            else:
+                self.game_over()
+
+    def solution(self):
+        pass
 
 
 if __name__ == '__main__':
-    main()
+    Game().start()
